@@ -197,9 +197,8 @@ def _document_single_builder(
 
 def _document_single_builder_inner(
     name: str,
-    visu_doc_util: doc_utils.VisualizationDocUtil,
-    df_doc_util: doc_utils.DataframeDocUtil,
     nightly_doc_util: doc_utils.NightlyDocUtil,
+    **kwargs: Any,
 ) -> Optional[BuilderDocumentation]:
   """Doc string for a single builder, with or without configs."""
   tqdm.tqdm.write(f'Document builder {name}...')
@@ -211,9 +210,8 @@ def _document_single_builder_inner(
       namespace=doc_info.namespace,
       builder=doc_info.builder,
       config_builders=doc_info.config_builders,
-      visu_doc_util=visu_doc_util,
-      df_doc_util=df_doc_util,
       nightly_doc_util=nightly_doc_util,
+      **kwargs
   )
   is_nightly = bool(
       nightly_doc_util and nightly_doc_util.is_builder_nightly(name)
@@ -277,11 +275,19 @@ def iter_documentation_builders(
   else:
     nightly_doc_util = None
 
+  if doc_util_paths.kyd_path:
+    kyd_util = doc_utils.KnowYourDataUtil(
+        path=doc_util_paths.kyd_path,
+    )
+  else:
+    kyd_util = None
+
   document_single_builder_fn = functools.partial(
       _document_single_builder,
       visu_doc_util=visu_doc_util,
       df_doc_util=df_doc_util,
       nightly_doc_util=nightly_doc_util,
+      kyd_util=kyd_util,
   )
 
   # Document all builders

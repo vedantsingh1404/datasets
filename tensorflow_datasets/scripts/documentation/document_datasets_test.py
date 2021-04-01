@@ -58,6 +58,9 @@ def document_single_builder_fn(tmp_path):
           base_url=doc_utils.DocUtilPaths.df_base_url,
       ),
       nightly_doc_util=None,
+      kyd_util=doc_utils.KnowYourDataUtil(
+          path=doc_utils.DocUtilPaths.kyd_path,
+      ),
   )
 
 

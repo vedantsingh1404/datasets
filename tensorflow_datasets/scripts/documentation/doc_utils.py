@@ -20,9 +20,10 @@ Used by tensorflow_datasets/scripts/documentation/build_catalog.py
 """
 
 import collections
+import csv
 import os
 import textwrap
-from typing import Dict, List, Optional, Tuple, Union, Set
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import dataclasses
 
@@ -31,7 +32,7 @@ import tensorflow_datasets as tfds
 
 
 # Dict of `full_names_dict['dataset']['config']['version']`
-FullNamesDict = Dict[str, Dict[str, Set[str]]]
+FullNamesDict = Dict[str, Dict[str, Dict[str, Any]]]
 # Same as `FullNamesDict`, but contains `True` for nightly datasets:
 # * New dataset: nightly_dict['dataset'] is True
 # * New config: nightly_dict['dataset']['config'] is True
@@ -55,6 +56,10 @@ class DocUtilPaths:
   # NightlyDocUtil
   nightly_path: Optional[tfds.core.PathLike] = tfds.core.utils.tfds_path(
       'stable_versions.txt'
+  )
+  # KnowYourDataUtil
+  kyd_path: Optional[tfds.core.PathLike] = (
+      None
   )
 
 
@@ -166,10 +171,11 @@ def _split_full_name(full_name: str) -> Tuple[str, str, str]:
 def _full_names_to_dict(full_names: List[str]) -> FullNamesDict:
   """Creates the dict `d['dataset']['config']['version']`."""
   full_names_dict = collections.defaultdict(
-      lambda: collections.defaultdict(set))
+      lambda: collections.defaultdict(  # pylint: disable=g-long-lambda
+          lambda: collections.defaultdict(type(None))))
   for full_name in full_names:
     ds_name, config, version = _split_full_name(full_name)
-    full_names_dict[ds_name][config].add(version)
+    full_names_dict[ds_name][config][version]  # pylint: disable=pointless-statement
   return full_names_dict
 
 
@@ -273,3 +279,20 @@ class NightlyDocUtil(object):
   icon = (
       '<span class="material-icons" '
       'title="Available only in the tfds-nightly package">nights_stay</span>')
+
+
+class KnowYourDataUtil(object):
+  """Small util to display visualization urls."""
+
+  def __init__(self, path: tfds.core.ReadOnlyPath):
+    """Constructor."""
+    ds2url = _full_names_to_dict(tfds.core.load.list_full_names())
+    with path.open() as f:
+      for row in csv.DictReader(f):
+        ds2url[row['dataset']][row['config']][row['version']] = row['url']
+    self._ds2url = ds2url
+
+  def get_url(self, builder: tfds.core.DatasetBuilder):
+    """Returns the url."""
+    ds_name, config, version = _split_full_name(builder.info.full_name)
+    return self._ds2url[ds_name][config][version]
